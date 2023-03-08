@@ -84,7 +84,7 @@ async def startFactionBattle(ctx):
     await ctx.respond("Starting the Lost Faction Battle!")
 
     # for testing large groups
-    for i in range(200):
+    for i in range(30):
         factionBattleContestants.append(factionBattleContestants[0])
 
     if len(factionBattleContestants) < 4:

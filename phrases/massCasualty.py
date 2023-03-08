@@ -4,5 +4,6 @@ mass_casualty_phrases = [
     ' throws a grenade and explodes ',
     ' unleashes the hounds on ',
     ' fires an arrow volley and kills ',
-    ' opens a gravity well under '
+    ' opens a gravity well under ',
+    ' needs more ideas for battle phrases but still kills '
 ]

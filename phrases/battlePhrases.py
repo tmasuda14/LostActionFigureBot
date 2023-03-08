@@ -48,7 +48,7 @@ battle_phrases = [
     ' was hit by Kendalf\'s stray spell!',
     ' looked too juicy and got mauled by Ted!',
     ' stepped on Rose\'s thorn!',
-    ', while pondering the meaning of life, was blindsided.',
+    ', while pondering the meaning of life, was knocked out.',
     ' was ambushed.',
     ' disgraced their God and accepted judgement.',
     ' drank a mysterious potion.',
