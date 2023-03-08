@@ -3,15 +3,17 @@ import os
 # from warriorSelectView import WarriorView
 from duel import run_duel
 from tournament import run_tournament
+from factionBattle import runFactionBattle
 from dotenv import load_dotenv
 import time
 
 load_dotenv()  # load all the variables from the env file
 bot = discord.Bot()
 
-games = discord.SlashCommandGroup("games", "Lost Action Figure Games")
-tourney = discord.SlashCommandGroup("tournament", "LAF Tournament")
-duels = discord.SlashCommandGroup("duel", "Start a Duel")
+game_slash = discord.SlashCommandGroup("games", "Lost Action Figure Games")
+tournament_slash = discord.SlashCommandGroup("tournament", "LAF Tournament")
+duel_slash = discord.SlashCommandGroup("duel", "Start a Duel")
+faction_battle_slash = discord.SlashCommandGroup("factionbattle", "Heroes vs. Villains!")
 
 duel_running = False
 signup_message = None
@@ -19,11 +21,13 @@ tournament_contestants = []
 duelists = {}
 duel_message = None
 tournament_running = False
+factionBattleContestants = []
+factionSignupMessage = None
 
 
 @bot.event
 async def on_ready():
-    print(f"{bot.user} is ready and online!")
+    print(f"{bot.user} is online and ready!")
 
 
 @bot.event
@@ -54,9 +58,43 @@ async def on_reaction_add(reaction, user):
                            (duelists.get(reaction.message.id)).author.name,
                            reaction.message.channel)
             duel_running = False
+    elif reaction.emoji == "🆚":
+        if reaction.message.id != factionSignupMessage.id:
+            return
+        if user.name != "Lost Action Figure Bot":
+            factionBattleContestants.append(user)
+            print(factionBattleContestants)
+            await reaction.message.channel.send(f">>TESTING>> Added {user.mention} to the faction battle.")
 
 
-@tourney.command(name="signups", description="LAF Tournament")
+@faction_battle_slash.command(name="signup", description="Faction Battle Signups!")
+async def factionBattle(ctx):
+    global factionSignupMessage
+    await ctx.respond("Beginning the faction battle!")
+    embed = discord.Embed(title=f"{ctx.author.name} has created the Lost Faction Battle signups!",
+                          description="")
+    embed.add_field(name="Click the 🆚 below to enter!",
+                    value="")
+    factionSignupMessage = await ctx.send(embed=embed)
+    await factionSignupMessage.add_reaction("🆚")
+
+
+@faction_battle_slash.command(name="start", description="Start the Faction Battle")
+async def startFactionBattle(ctx):
+    await ctx.respond("Starting the Lost Faction Battle!")
+
+    # for testing large groups
+    for i in range(200):
+        factionBattleContestants.append(factionBattleContestants[0])
+
+    if len(factionBattleContestants) < 4:
+        await ctx.respond("Please wait for at least 4 players")
+    else:
+        await runFactionBattle(ctx, factionBattleContestants)
+        factionBattleContestants.clear()
+
+
+@tournament_slash.command(name="signup", description="LAF Tournament Signup")
 async def signups(ctx):
     global signup_message, tournament_running
     if tournament_running:
@@ -64,7 +102,7 @@ async def signups(ctx):
         return
     tournament_running = True
     await ctx.respond("Signups begin for the Lost Action Figure Tournament!")
-    embed = discord.Embed(title="{} has created the Lost Tournament!".format(ctx.author.name),
+    embed = discord.Embed(title=f"{ctx.author.name} has created the Lost Tournament! (Max 16 players)",
                           description="")
     embed.add_field(name="Click the ✅ below to enter!",
                     value="")
@@ -72,35 +110,44 @@ async def signups(ctx):
     await signup_message.add_reaction("✅")
 
 
-@tourney.command(name="start", description="LAF Tournament")
+@tournament_slash.command(name="start", description="LAF Tournament - Max 16 players")
 async def start(ctx):
     global signup_message, tournament_contestants, tournament_running
-    # if len(tournament_contestants) < 2:
-    #     await ctx.respond("Please wait for more players.")
-    #     return
-    tournament_contestants.append("User1")
-    tournament_contestants.append("User2")
-    tournament_contestants.append("User3")
-    tournament_contestants.append("User4")
-    tournament_contestants.append("User5")
-    tournament_contestants.append("User6")
-    tournament_contestants.append("User7")
-    # tournament_contestants.append("User8")
-    # tournament_contestants.append("User9")
-    # tournament_contestants.append("User10")
-    # tournament_contestants.append("User11")
-    # tournament_contestants.append("User12")
+    await ctx.respond("Last call! 3.. 2.. 1..")
+    time.sleep(4)
+    tournament_contestants.append("Ace")
+    tournament_contestants.append("Hurk")
+    tournament_contestants.append("Ray")
+    tournament_contestants.append("Del EEET1")
+    tournament_contestants.append("del eeet2")
+    tournament_contestants.append("Del EEET3")
+    tournament_contestants.append("del eeet4")
+    tournament_contestants.append("Del EEET5")
+    tournament_contestants.append("del eeet6")
+    tournament_contestants.append("Del EEET7")
+    tournament_contestants.append("del eeet8")
+    tournament_contestants.append("Del EEET9")
+    tournament_contestants.append("del eeet10")
+    tournament_contestants.append("Del EEET11")
+    tournament_contestants.append("del eeet12")
+    tournament_contestants.append("Del EEET13")
+    tournament_contestants.append("del eeet14")
+    tournament_contestants.append("Del EEET15")
+    tournament_contestants.append("del eeet16")
+
+    if len(tournament_contestants) < 2:
+        await ctx.respond("Please wait for more players.")
+        return
+
     if tournament_running:
-        embed = discord.Embed(title="{} has started the Lost Action Figure Tournament!".format(ctx.author.name),
-                              description="")
-        await ctx.respond(embed=embed)
         await run_tournament(ctx, tournament_contestants)
         tournament_running = False
+        tournament_contestants.clear()
     else:
         await ctx.respond("There is no tournament running.")
 
 
-@duels.command(name="any", description="Request a duel")
+@duel_slash.command(name="any", description="Request a duel")
 async def duel(ctx):
     global duel_running, duelists
     if duel_running:
@@ -114,7 +161,7 @@ async def duel(ctx):
         await duel_msg.add_reaction("🤺")
 
 
-@duels.command(name="user", description="Request a duel with a specific user")
+@duel_slash.command(name="user", description="Request a duel with a specific user")
 async def duel(ctx, user: discord.User):
     global duel_running
     await ctx.respond(f"Beginning the Lost Duel!")
@@ -148,9 +195,10 @@ async def duel(ctx, user: discord.User):
 #     await msg.clear_reactions()
 
 
-bot.add_application_command(games)
-bot.add_application_command(tourney)
-bot.add_application_command(duels)
+bot.add_application_command(game_slash)
+bot.add_application_command(tournament_slash)
+bot.add_application_command(duel_slash)
+bot.add_application_command(faction_battle_slash)
 
 bot.run(os.getenv('TOKEN'))  # run the bot with the token
 
@@ -160,7 +208,7 @@ bot.run(os.getenv('TOKEN'))  # run the bot with the token
 #     await ctx.respond('Hello {}'.format(user.mention))
 
 
-# @games.command(name="dice", description="Roll dice against the Lost Troll")
+# @game_slash.command(name="dice", description="Roll dice against the Lost Troll")
 # async def dice(ctx):
 #     await ctx.respond("Roll!")
 #
