@@ -4,31 +4,41 @@ import time
 from fbTournament import run_tournament
 from phrases.massCasualty import mass_casualty_phrases
 
+original_heroes = []
+original_villains = []
+game_winner = None
+
 
 async def runFactionBattle(ctx, contestant_list):
+    global original_heroes, original_villains, game_winner
     player_count = len(contestant_list)
     h_v = chunkify(contestant_list, 2)
 
     hero_list = h_v[0]
     villain_list = h_v[1]
+    original_heroes = hero_list.copy()
+    original_villains = villain_list.copy()
     await printPlayers(ctx, hero_list, villain_list)
-    time.sleep(4)
-    battle_round_embed = discord.Embed(title="Faction Battle... BEGIN!", description="")
+    time.sleep(6)
+    battle_round_embed = discord.Embed(title="Heroes vs. Villains!", description="")
+    battle_round_embed.set_image(url="./src/LostLogo.jpeg")
     br_embed_msg = await ctx.send(embed=battle_round_embed)
     time.sleep(2)
     embed_count = 0
     while player_count > 1:
-        if embed_count > 5:
-            battle_round_embed = discord.Embed(title="", description="🩸")
-            br_embed_msg = await ctx.send(embed=battle_round_embed)
         if len(hero_list) == 0:
-            if len(villain_list) <= 8:
+            if len(villain_list) <= 4:
                 await printPlayers(ctx, hero_list, villain_list)
-                tourney_intro = discord.Embed(title="All Heroes are defeated!",
-                                              description="Beginning the Tournament of Villains!")
+                time.sleep(5)
+                players_remaining = len(villain_list)
+                tourney_intro = discord.Embed(title="All Heroes have been defeated!",
+                                              description=f"The remaining {players_remaining} players will fight 1v1, "
+                                                          f"single elimination!")
+                tourney_intro.add_field(name="", value="Beginning the Tournament of Villains...")
                 await ctx.send(embed=tourney_intro)
-                time.sleep(4)
-                await run_tournament(ctx, villain_list)
+                time.sleep(6)
+                game_winner = await run_tournament(ctx, villain_list)
+                await printWinner(ctx, [], original_villains)
                 return
             else:
                 # await printPlayers(ctx, hero_list, villain_list)
@@ -36,38 +46,51 @@ async def runFactionBattle(ctx, contestant_list):
                 player_count -= players_killed
 
         elif len(villain_list) == 0:
-            if len(hero_list) <= 8:
+            if len(hero_list) <= 4:
                 await printPlayers(ctx, hero_list, villain_list)
-                tourney_intro = discord.Embed(title="All Villains are defeated!",
-                                              description="Beginning the Tournament of Heroes!")
+                time.sleep(5)
+                players_remaining = len(hero_list)
+                tourney_intro = discord.Embed(title="All Villains have been defeated!",
+                                              description=f"The remaining {players_remaining} players will fight 1v1, "
+                                                          f"single elimination!")
+                tourney_intro.add_field(name="", value="Beginning the Tournament of Heroes...")
                 await ctx.send(embed=tourney_intro)
-                time.sleep(4)
-                await run_tournament(ctx, hero_list)
+                time.sleep(6)
+                game_winner = await run_tournament(ctx, hero_list)
+                await printWinner(ctx, original_heroes, [])
                 return
             else:
-
-                # await printPlayers(ctx, hero_list, villain_list)
                 players_killed = await singleTeamBattleRounds(ctx, hero_list, "hero")
                 player_count -= players_killed
 
-        elif player_count <= 8:
+        elif player_count <= 4:
             await printPlayers(ctx, hero_list, villain_list)
-            time.sleep(4)
+            time.sleep(5)
+            players_remaining = len(villain_list) + len(hero_list)
             tourney_intro = discord.Embed(title="Only a few challengers remain!",
-                                          description="Beginning the Tournament of Legends!")
+                                          description=f"The remaining {players_remaining} players will fight 1v1, "
+                                                      f"single elimination!")
+            tourney_intro.add_field(name="", value="Beginning the Tournament of Legends...")
+
             await ctx.send(embed=tourney_intro)
-            time.sleep(4)
-            await run_tournament(ctx, (hero_list + villain_list))
+            time.sleep(6)
+            game_winner = await run_tournament(ctx, (hero_list + villain_list))
+            if game_winner in original_heroes:
+                await printWinner(ctx, original_heroes, [])
+            else:
+                await printWinner(ctx, [], original_villains)
+            # await printWinner(ctx, hero_list, villain_list)
+
             return
 
         else:
-            if embed_count > 5:
+            if embed_count >= 3:
+                battle_round_embed = discord.Embed(title="", description="🩸")
+                br_embed_msg = await ctx.send(embed=battle_round_embed)
                 embed_count = 0
-            players_killed = await battleRounds(ctx, hero_list, villain_list, br_embed_msg, battle_round_embed)
+            players_killed = await battleRounds(hero_list, villain_list, br_embed_msg, battle_round_embed)
             player_count -= players_killed
             embed_count += 1
-
-    await printWinner(ctx, hero_list, villain_list)
 
 
 def replace_last(string, delimiter, replacement):
@@ -75,7 +98,7 @@ def replace_last(string, delimiter, replacement):
     return start + replacement + end
 
 
-async def battleRounds(ctx, hero_list, villain_list, br_msg, br_embed):
+async def battleRounds(hero_list, villain_list, br_msg, br_embed):
     kill_count = 0
     match random.randint(1, 2):
         case 1:
@@ -132,10 +155,10 @@ async def singleTeamBattleRounds(ctx, warrior_list, emoji_name):
         emoji = "🇭"
     else:
         emoji = "🇻"
-    while len(warrior_list) > 8:
+    while len(warrior_list) > 4:
         random.shuffle(warrior_list)
         champion = warrior_list[0]
-        number_of_kills = random.randint(1, 4)
+        number_of_kills = random.randint(1, 3)
         dead_players = ""
         for dead_player in range(number_of_kills):
             if len(warrior_list) <= 1:
@@ -204,15 +227,45 @@ async def printPlayers(ctx, hero_list, villain_list):
 
 
 async def printWinner(ctx, hero_list, villain_list):
-    winner_embed = discord.Embed(title="**Winner:**", description="")
+    global original_heroes, original_villains
     if len(hero_list) == 0:
-        winner_embed.add_field(name="", value=f"**{villain_list[0]}**")
+        winner_embed = discord.Embed(title=f"**VILLAINS win the Faction Battle!**", description="")
+        villain_names = ""
+        villain_count = 0
+        for player in original_villains:
+            villain_names += player.mention + ", "
+            villain_count += 1
+            if villain_count == 20:
+                villain_names = villain_names.rstrip(', ')
+                winner_embed.add_field(name="", value=f"{villain_names}", inline=False)
+                villain_names = ""
+                villain_count = 0
+        if villain_count != 0:
+            villain_names = villain_names.rstrip(', ')
+            winner_embed.add_field(name="", value=f"{villain_names}", inline=False)
         winner = villain_list[0].mention
+
+        winner_embed.add_field(name="", value=f"MVP: {winner}")
+        await ctx.send(embed=winner_embed)
     else:
-        winner_embed.add_field(name="", value=f"**{hero_list[0]}**")
+        winner_embed = discord.Embed(title=f"**HEROES win the Faction Battle!**", description="")
+        hero_names = ""
+        hero_count = 0
+        for player in original_heroes:
+            hero_names += player.mention + ", "
+            hero_count += 1
+            if hero_count == 20:
+                hero_names = hero_names.rstrip(', ')
+                winner_embed.add_field(name="", value=f"{hero_names}", inline=False)
+                hero_names = ""
+                hero_count = 0
+        if hero_count != 0:
+            hero_names = hero_names.rstrip(', ')
+            winner_embed.add_field(name="", value=f"{hero_names}", inline=False)
         winner = hero_list[0].mention
 
-    await ctx.send(embed=winner_embed)
+        winner_embed.add_field(name="", value=f"MVP: {winner}")
+        await ctx.send(embed=winner_embed)
     await ctx.send(f"**{winner}**")
 
 

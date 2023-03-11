@@ -78,8 +78,8 @@ async def run_tournament(ctx, contestants: list):
                 time.sleep(3)
 
                 while p1hp > 0 or p2hp > 0:
-                    p1_attack = random.randint(1, 6)
-                    p2_attack = random.randint(1, 6)
+                    p1_attack = random.randint(1, 4)
+                    p2_attack = random.randint(1, 4)
 
                     p1hp -= p2_attack
                     p2hp -= p1_attack
@@ -88,9 +88,11 @@ async def run_tournament(ctx, contestants: list):
                         p1hp = 0
                     if p2hp < 0:
                         p2hp = 0
-                    p1_health_bar = ("❤️ " * p1hp) + ("♡ " * (6 - p1hp))
-                    p2_health_bar = ("❤️ " * p2hp) + ("♡ " * (6 - p2hp))
+                    # p1_health_bar = ("❤️ " * p1hp) + ("♡ " * (6 - p1hp))
+                    p1_health_bar = ("💜" * p1hp) + ("♡ " * (6 - p1hp))
 
+                    p2_health_bar = ("🧡" * p2hp) + ("♡ " * (6 - p2hp))
+                    # 💚💙🧡💜❤
                     p1_attack_phrase = random.choice(battle_phrases)
                     p2_attack_phrase = random.choice(battle_phrases)
 
@@ -147,5 +149,6 @@ async def run_tournament(ctx, contestants: list):
                 time.sleep(sleepTime)
         round_num += 1
 
-    embed = discord.Embed(title=f"{cur_winner.name} is CHAMPION!!!", description="🗡️ 👑 🛡️", color=0x00ff00)
+    embed = discord.Embed(title=f"{cur_winner.name} is the last one standing!", description="🗡️ 👑 🛡️", color=0x00ff00)
     await ctx.send(embed=embed)
+    return cur_winner
