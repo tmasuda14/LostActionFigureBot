@@ -26,7 +26,7 @@ async def run_tournament(ctx, contestants: list):
 
     while running:
         cur_winner = None
-        embed_intro = discord.Embed(title=f"====== ROUND {round_num} ======", color=0x31802f)
+        embed_intro = discord.Embed(title=f"ROUND {round_num}", color=0x31802f)
         await ctx.send(embed=embed_intro)
         time.sleep(0.5)
         this_round = next_round
@@ -46,7 +46,7 @@ async def run_tournament(ctx, contestants: list):
             p2hp = 6
 
             if player1 == 'The Sad Troll':
-                embed_match = discord.Embed(title=f"⚔️  **{player1}** 🆚 **{player2.name}**  ⚔️ \n",
+                embed_match = discord.Embed(title=f"⚔️  **{player1}** 🆚 **{player2.name}**  (bye round)⚔️ \n",
                                             description=f"",
                                             color=matchColor)
                 embed_match.add_field(name="", value="ㅤ", inline=False)
@@ -58,7 +58,7 @@ async def run_tournament(ctx, contestants: list):
                 await ctx.send(embed=embed_match)
                 time.sleep(3)
             elif player2 == 'The Sad Troll':
-                embed_match = discord.Embed(title=f"⚔️  **{player1.name}** 🆚 **{player2}**  ⚔️ \n",
+                embed_match = discord.Embed(title=f" **{player1.name}** 🆚 **{player2}**",
                                             description=f"",
                                             color=matchColor)
                 embed_match.add_field(name="", value="ㅤ", inline=False)
@@ -70,11 +70,13 @@ async def run_tournament(ctx, contestants: list):
                 await ctx.send(embed=embed_match)
                 time.sleep(3)
             else:
-                embed_match = discord.Embed(title=f"⚔️  **{player1.name}** 🆚 **{player2.name}**  ⚔️ \n",
+                embed_match = discord.Embed(title=f"**{player1.name}** 🆚 **{player2.name}**",
                                             description=f"",
                                             color=matchColor)
                 embed_match.add_field(name="", value="ㅤ", inline=False)
-                msg = await ctx.send(embed=embed_match)
+                file = discord.File("./src/Donner_Blades.jpeg", filename="DonnerBlades.jpeg")
+                embed_match.set_thumbnail(url="attachment://DonnerBlades.jpeg")
+                msg = await ctx.send(embed=embed_match, file=file)
                 time.sleep(3)
 
                 while p1hp > 0 or p2hp > 0:
@@ -97,12 +99,12 @@ async def run_tournament(ctx, contestants: list):
                     p2_attack_phrase = random.choice(battle_phrases)
 
                     embed_match.add_field(name=f"",
-                                          value=f"**{player1.name}** {p1_attack_phrase}\n[{p1_health_bar}] **(-{p2_attack})**",
+                                          value=f"**{player1.name}**{p1_attack_phrase}\n[{p1_health_bar}] **(-{p2_attack})**",
                                           inline=False)
                     await msg.edit(embed=embed_match)
                     time.sleep(3.125)
                     embed_match.add_field(name=f"",
-                                          value=f"**{player2.name}** {p2_attack_phrase}\n[{p2_health_bar}] **(-{p1_attack})**",
+                                          value=f"**{player2.name}**{p2_attack_phrase}\n[{p2_health_bar}] **(-{p1_attack})**",
                                           inline=False)
                     await msg.edit(embed=embed_match)
                     time.sleep(3.125)

@@ -2,7 +2,7 @@ import discord
 import os
 # from warriorSelectView import WarriorView
 from duel import run_duel
-from tournament import run_tournament
+# from tournament import run_tournament
 from factionBattle import runFactionBattle
 from dotenv import load_dotenv
 import time
@@ -10,8 +10,8 @@ import time
 load_dotenv()  # load all the variables from the env file
 bot = discord.Bot()
 
-game_slash = discord.SlashCommandGroup("games", "Lost Action Figure Games")
-tournament_slash = discord.SlashCommandGroup("tournament", "LAF Tournament")
+# game_slash = discord.SlashCommandGroup("games", "Lost Action Figure Games")
+# tournament_slash = discord.SlashCommandGroup("tournament", "LAF Tournament")
 duel_slash = discord.SlashCommandGroup("duel", "Start a Duel")
 faction_battle_slash = discord.SlashCommandGroup("factionbattle", "Heroes vs. Villains!")
 
@@ -23,6 +23,9 @@ duel_message = None
 tournament_running = False
 factionBattleContestants = []
 factionSignupMessage = None
+event_selections = [[], [], []]
+current_event_message = None
+faction_battle_running = False
 
 
 @bot.event
@@ -32,44 +35,61 @@ async def on_ready():
 
 @bot.event
 async def on_reaction_add(reaction, user):
-    global duel_running, signup_message, duelists
-
-    if reaction.emoji == "✅":
-        if reaction.message.id != signup_message.id:
-            return
-        if user.name != "Lost Action Figure Bot":
-            await signup_message.channel.send(f"A new challenger appears: {user.name}!")
-            tournament_contestants.append(user.name)
-    elif reaction.emoji == "🤺":
+    global duel_running, signup_message, duelists, event_selections, current_event_message
+    if user.name == "Lost Battlemaster":
+        return
+    # if reaction.emoji == "✅":
+    #     if reaction.message.id != signup_message.id:
+    #         return
+    #     if user.name != "Lost Battlemaster":
+    #         await signup_message.channel.send(f"A new challenger appears: {user.name}!")
+    #         tournament_contestants.append(user.name)
+    if reaction.emoji == "🤺":
         if duelists.get(reaction.message.id) is None:
             return
-        if user.name != "Lost Action Figure Bot":
-            duel_running = True
-            await run_duel(user.name,
-                           (duelists.get(reaction.message.id))[0].author.name,
-                           reaction.message.channel)
-            duel_running = False
-    elif reaction.emoji == "🤺":
-        if duelists.get(reaction.message.id) is None:
-            return
-        if user.name != "Lost Action Figure Bot":
-            duel_running = True
-            await run_duel(duelists.get(reaction.message.id)[1],
-                           (duelists.get(reaction.message.id)).author.name,
-                           reaction.message.channel)
-            duel_running = False
+        duel_running = True
+        await run_duel(user.name,
+                       (duelists.get(reaction.message.id))[0].author.name,
+                       reaction.message.channel)
+        duel_running = False
+    # elif reaction.emoji == "🤺":
+    #     if duelists.get(reaction.message.id) is None:
+    #         return
+    #     if user.name != "Lost Battlemaster":
+    #         duel_running = True
+    #         await run_duel(duelists.get(reaction.message.id)[1],
+    #                        (duelists.get(reaction.message.id)).author.name,
+    #                        reaction.message.channel)
+    #         duel_running = False
     elif reaction.emoji == "🆚":
         if reaction.message.id != factionSignupMessage.id:
             return
-        if user.name != "Lost Action Figure Bot":
-            factionBattleContestants.append(user)
-            print(factionBattleContestants)
-            await reaction.message.channel.send(f">>TESTING>> Added {user.mention} to the faction battle.")
+        factionBattleContestants.append(user)
+        await reaction.message.channel.send(f">>TESTING>> Added {user.mention} to the faction battle.")
+    # if current_event_message is not None:
+    # if reaction.message.id == current_event_message.id:
+    if faction_battle_running and user in factionBattleContestants:
+        if reaction.emoji == "1️⃣":
+            for choice in event_selections:
+                if user in choice:
+                    return
+            event_selections[0].append(user)
+        elif reaction.emoji == "2️⃣":
+            for choice in event_selections:
+                if user in choice:
+                    return
+            event_selections[1].append(user)
+        elif reaction.emoji == "3️⃣":
+            for choice in event_selections:
+                if user in choice:
+                    return
+            event_selections[2].append(user)
 
 
 @faction_battle_slash.command(name="signup", description="Faction Battle Signups!")
 async def factionBattle(ctx):
-    global factionSignupMessage
+    global factionSignupMessage, factionBattleContestants
+    factionBattleContestants.clear()
     await ctx.respond("Beginning the faction battle!")
     embed = discord.Embed(title=f"{ctx.author.name} has created the Lost Faction Battle signups!",
                           description="")
@@ -81,70 +101,75 @@ async def factionBattle(ctx):
 
 @faction_battle_slash.command(name="start", description="Start the Faction Battle")
 async def startFactionBattle(ctx):
-    await ctx.respond("Starting the Lost Faction Battle!")
-
+    global event_selections, current_event_message, faction_battle_running
+    faction_battle_running = True
+    await ctx.respond("The Lost Faction Battle is starting now,\nprepare yourselves!")
+    time.sleep(2)
+    # current_event_message = await ctx.send("Prepare yourselves")
+    # current_event_message = msg
     # for testing large groups
-    for i in range(29):
+    for i in range(12):
         factionBattleContestants.append(factionBattleContestants[0])
 
     if len(factionBattleContestants) < 4:
         await ctx.respond("Please wait for at least 4 players")
     else:
-        await runFactionBattle(ctx, factionBattleContestants)
+        await runFactionBattle(ctx, factionBattleContestants, event_selections, current_event_message)
         factionBattleContestants.clear()
+        faction_battle_running = False
 
-
-@tournament_slash.command(name="signup", description="LAF Tournament Signup")
-async def signups(ctx):
-    global signup_message, tournament_running
-    if tournament_running:
-        await ctx.respond("Please wait for the current tournament to finish.")
-        return
-    tournament_running = True
-    await ctx.respond("Signups begin for the Lost Action Figure Tournament!")
-    embed = discord.Embed(title=f"{ctx.author.name} has created the Lost Tournament! (Max 16 players)",
-                          description="")
-    embed.add_field(name="Click the ✅ below to enter!",
-                    value="")
-    signup_message = await ctx.send(embed=embed)
-    await signup_message.add_reaction("✅")
-
-
-@tournament_slash.command(name="start", description="LAF Tournament - Max 16 players")
-async def start(ctx):
-    global signup_message, tournament_contestants, tournament_running
-    await ctx.respond("Last call! 3.. 2.. 1..")
-    time.sleep(4)
-    tournament_contestants.append("Ace")
-    tournament_contestants.append("Hurk")
-    tournament_contestants.append("Ray")
-    tournament_contestants.append("Del EEET1")
-    tournament_contestants.append("del eeet2")
-    tournament_contestants.append("Del EEET3")
-    tournament_contestants.append("del eeet4")
-    tournament_contestants.append("Del EEET5")
-    tournament_contestants.append("del eeet6")
-    tournament_contestants.append("Del EEET7")
-    tournament_contestants.append("del eeet8")
-    tournament_contestants.append("Del EEET9")
-    tournament_contestants.append("del eeet10")
-    tournament_contestants.append("Del EEET11")
-    tournament_contestants.append("del eeet12")
-    tournament_contestants.append("Del EEET13")
-    tournament_contestants.append("del eeet14")
-    tournament_contestants.append("Del EEET15")
-    tournament_contestants.append("del eeet16")
-
-    if len(tournament_contestants) < 2:
-        await ctx.respond("Please wait for more players.")
-        return
-
-    if tournament_running:
-        await run_tournament(ctx, tournament_contestants)
-        tournament_running = False
-        tournament_contestants.clear()
-    else:
-        await ctx.respond("There is no tournament running.")
+#
+# @tournament_slash.command(name="signup", description="LAF Tournament Signup")
+# async def signups(ctx):
+#     global signup_message, tournament_running
+#     if tournament_running:
+#         await ctx.respond("Please wait for the current tournament to finish.")
+#         return
+#     tournament_running = True
+#     await ctx.respond("Signups begin for the Lost Action Figure Tournament!")
+#     embed = discord.Embed(title=f"{ctx.author.name} has created the Lost Tournament! (Max 16 players)",
+#                           description="")
+#     embed.add_field(name="Click the ✅ below to enter!",
+#                     value="")
+#     signup_message = await ctx.send(embed=embed)
+#     await signup_message.add_reaction("✅")
+#
+#
+# @tournament_slash.command(name="start", description="LAF Tournament - Max 16 players")
+# async def start(ctx):
+#     global signup_message, tournament_contestants, tournament_running
+#     await ctx.respond("Last call! 3.. 2.. 1..")
+#     time.sleep(4)
+#     tournament_contestants.append("Ace")
+#     tournament_contestants.append("Hurk")
+#     tournament_contestants.append("Ray")
+#     tournament_contestants.append("Del EEET1")
+#     tournament_contestants.append("del eeet2")
+#     tournament_contestants.append("Del EEET3")
+#     tournament_contestants.append("del eeet4")
+#     tournament_contestants.append("Del EEET5")
+#     tournament_contestants.append("del eeet6")
+#     tournament_contestants.append("Del EEET7")
+#     tournament_contestants.append("del eeet8")
+#     tournament_contestants.append("Del EEET9")
+#     tournament_contestants.append("del eeet10")
+#     tournament_contestants.append("Del EEET11")
+#     tournament_contestants.append("del eeet12")
+#     tournament_contestants.append("Del EEET13")
+#     tournament_contestants.append("del eeet14")
+#     tournament_contestants.append("Del EEET15")
+#     tournament_contestants.append("del eeet16")
+#
+#     if len(tournament_contestants) < 2:
+#         await ctx.respond("Please wait for more players.")
+#         return
+#
+#     if tournament_running:
+#         await run_tournament(ctx, tournament_contestants)
+#         tournament_running = False
+#         tournament_contestants.clear()
+#     else:
+#         await ctx.respond("There is no tournament running.")
 
 
 @duel_slash.command(name="any", description="Request a duel")
@@ -161,13 +186,13 @@ async def duel(ctx):
         await duel_msg.add_reaction("🤺")
 
 
-@duel_slash.command(name="user", description="Request a duel with a specific user")
-async def duel(ctx, user: discord.User):
-    global duel_running
-    await ctx.respond(f"Beginning the Lost Duel!")
-    duel_msg = await ctx.send(f"{ctx.author.name} wants to fight you, {user.mention}!")
-    duelists[duel_msg.id] = (ctx, user)
-    await duel_msg.add_reaction("🤺")
+# @duel_slash.command(name="user", description="Request a duel with a specific user")
+# async def duel(ctx, user: discord.User):
+#     global duel_running
+#     await ctx.respond(f"Beginning the Lost Duel!")
+#     duel_msg = await ctx.send(f"{ctx.author.name} wants to fight you, {user.mention}!")
+#     duelists[duel_msg.id] = (ctx, user)
+#     await duel_msg.add_reaction("🤺")
 
 
 # class MyView(discord.ui.View):  # Create a class called MyView that subclasses discord.ui.View
@@ -194,9 +219,9 @@ async def duel(ctx, user: discord.User):
 #         pass
 #     await msg.clear_reactions()
 
-
-bot.add_application_command(game_slash)
-bot.add_application_command(tournament_slash)
+#
+# bot.add_application_command(game_slash)
+# bot.add_application_command(tournament_slash)
 bot.add_application_command(duel_slash)
 bot.add_application_command(faction_battle_slash)
 
